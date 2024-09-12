@@ -32,6 +32,18 @@ class HackerNewsService {
     return this.paginate(stories, page, limit);
   }
 
+  async searchStories(query, page = 1, limit = 20) {
+    const cachedStories = cache.get("newStories");
+    if (!cachedStories) {
+      await this.getNewStories();
+    }
+    const stories = cache.get("newStories");
+    const filteredStories = stories.filter((story) =>
+      story.title.toLowerCase().includes(query.toLowerCase())
+    );
+    return this.paginate(filteredStories, page, limit);
+  }
+
   paginate(array, page, limit) {
     const startIndex = (page - 1) * limit;
     const endIndex = page * limit;
@@ -53,6 +65,19 @@ class HackerNewsController {
     );
     res.json(stories);
   }
+
+  async searchStories(req, res) {
+    const { query, page = 1, limit = 20 } = req.query;
+    if (!query) {
+      return res.status(400).json({ error: "Query parameter is required" });
+    }
+    const stories = await this.hackerNewsService.searchStories(
+      query,
+      parseInt(page),
+      parseInt(limit)
+    );
+    res.json(stories);
+  }
 }
 
 // Middleware for dependency injection
@@ -67,6 +92,10 @@ app.use((req, res, next) => {
 // Routes
 app.get("/new-stories", (req, res) =>
   req.hackerNewsController.getNewStories(req, res)
+);
+
+app.get("/search-stories", (req, res) =>
+  req.hackerNewsController.searchStories(req, res)
 );
 
 // Start the server
