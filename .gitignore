@@ -1,0 +1,30 @@
+# Node.js backend
+/Backend/node_modules
+/Backend/dist
+/Backend/.env
+/Backend/*.log
+
+# Angular frontend
+/Frontend/angular-app/node_modules
+/Frontend/angular-app/dist
+/Frontend/angular-app/.angular
+/Frontend/angular-app/coverage
+
+# React frontend
+/Frontend/react-app/node_modules
+/Frontend/react-app/build
+/Frontend/react-app/coverage
+
+# General
+*.DS_Store
+*.env
+*.log
+*.lock
+*.tmp
+*.swp
+
+# IDE and OS specific files
+.vscode
+.idea
+.DS_Store
+Thumbs.db
