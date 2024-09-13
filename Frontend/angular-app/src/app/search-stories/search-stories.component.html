@@ -1,0 +1,13 @@
+<!-- src/app/search-stories/search-stories.component.html -->
+<div>
+    <h2>Search Stories</h2>
+    <input type="text" [(ngModel)]="query" placeholder="Search stories...">
+    <button (click)="searchStories()">Search</button>
+    <ul>
+        <li *ngFor="let story of stories">
+            <a [href]="story.url || '#'" target="_blank">{{ story.title }}</a>
+        </li>
+    </ul>
+    <button (click)="prevPage()">Previous</button>
+    <button (click)="nextPage()">Next</button>
+</div>

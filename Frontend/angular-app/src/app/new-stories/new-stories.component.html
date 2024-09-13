@@ -1,0 +1,11 @@
+<!-- src/app/new-stories/new-stories.component.html -->
+<div>
+    <h2>New Stories</h2>
+    <ul>
+        <li *ngFor="let story of stories">
+            <a [href]="story.url || '#'" target="_blank">{{ story.title }}</a>
+        </li>
+    </ul>
+    <button (click)="prevPage()">Previous</button>
+    <button (click)="nextPage()">Next</button>
+</div>

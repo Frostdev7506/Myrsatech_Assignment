@@ -15,6 +15,8 @@
 /Frontend/react-app/build
 /Frontend/react-app/coverage
 
+
+node_modules
 # General
 *.DS_Store
 *.env

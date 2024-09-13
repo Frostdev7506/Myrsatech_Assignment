@@ -1,9 +1,10 @@
 const express = require("express");
 const axios = require("axios");
 const NodeCache = require("node-cache");
-
+const cors = require("cors");
 const app = express();
-const port = 3000;
+app.use(cors());
+const port = 5000;
 
 // Cache setup
 const cache = new NodeCache({ stdTTL: 600 }); // Cache for 10 minutes
