@@ -1,39 +1,23 @@
-// src/app/search-stories/search-stories.component.ts
-import { Component } from '@angular/core';
-import { HackerNewsService } from '../hacker-news.service';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-@Component({
-  selector: 'app-search-stories',
-  templateUrl: './search-stories.component.html',
-  styleUrls: ['./search-stories.component.css'],
-})
-export class SearchStoriesComponent {
-  query: string = '';
-  stories: any[] = [];
-  page: number = 1;
-  limit: number = 20;
+import { SearchStoriesComponent } from './search-stories.component';
 
-  constructor(private hackerNewsService: HackerNewsService) {}
+describe('SearchStoriesComponent', () => {
+  let component: SearchStoriesComponent;
+  let fixture: ComponentFixture<SearchStoriesComponent>;
 
-  searchStories(): void {
-    if (this.query) {
-      this.hackerNewsService
-        .searchStories(this.query, this.page, this.limit)
-        .subscribe((data) => {
-          this.stories = data;
-        });
-    }
-  }
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [SearchStoriesComponent]
+    })
+    .compileComponents();
+    
+    fixture = TestBed.createComponent(SearchStoriesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
 
-  nextPage(): void {
-    this.page++;
-    this.searchStories();
-  }
-
-  prevPage(): void {
-    if (this.page > 1) {
-      this.page--;
-      this.searchStories();
-    }
-  }
-}
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});
