@@ -1,9 +1,12 @@
 // src/app/new-stories/new-stories.component.ts
 import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common'; // Import CommonModule
 import { HackerNewsService } from '../hacker-news.service';
 
 @Component({
   selector: 'app-new-stories',
+  standalone: true,
+  imports: [CommonModule], // Include CommonModule here
   templateUrl: './new-stories.component.html',
   styleUrls: ['./new-stories.component.css'],
 })
