@@ -1,0 +1,66 @@
+/* Apply box-sizing globally to ensure padding and border are included in width */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body,
+html {
+  margin: 0;
+  padding: 0;
+}
+
+nav {
+  width: 100%; /* Ensure the nav takes full width */
+  background-color: #007bff;
+  padding: 10px 20px;
+  border-bottom: 2px solid #0056b3;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+nav ul {
+  list-style: none;
+  font-size: 1.8rem;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%; /* Ensure the ul takes full width */
+}
+
+nav a {
+  color: #fff;
+  text-decoration: none;
+
+  padding: 10px 15px;
+  font-size: 1em;
+  margin: 0 10px;
+  border-radius: 4px;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+nav a:hover {
+  background-color: #0056b3;
+  color: #fff;
+}
+
+@media (max-width: 600px) {
+  nav {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  nav ul {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  nav a {
+    margin: 5px 0;
+    text-align: center;
+  }
+}
