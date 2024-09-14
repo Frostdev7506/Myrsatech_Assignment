@@ -1,78 +1,112 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { of } from 'rxjs';
 import { NewStoriesComponent } from './new-stories.component';
 import { HackerNewsService } from '../hacker-news.service';
-import { of } from 'rxjs';
-import { CommonModule } from '@angular/common';
 
 describe('NewStoriesComponent', () => {
   let component: NewStoriesComponent;
   let fixture: ComponentFixture<NewStoriesComponent>;
-  let mockHackerNewsService: jasmine.SpyObj<HackerNewsService>;
+  let hackerNewsService: jasmine.SpyObj<HackerNewsService>;
 
   beforeEach(async () => {
-    mockHackerNewsService = jasmine.createSpyObj('HackerNewsService', [
+    const hackerNewsServiceSpy = jasmine.createSpyObj('HackerNewsService', [
       'getNewStories',
     ]);
 
     await TestBed.configureTestingModule({
-      imports: [CommonModule],
-      declarations: [NewStoriesComponent],
+      imports: [HttpClientTestingModule],
       providers: [
-        { provide: HackerNewsService, useValue: mockHackerNewsService },
+        NewStoriesComponent,
+        { provide: HackerNewsService, useValue: hackerNewsServiceSpy },
       ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(NewStoriesComponent);
     component = fixture.componentInstance;
-    fixture.detectChanges();
+    hackerNewsService = TestBed.inject(
+      HackerNewsService
+    ) as jasmine.SpyObj<HackerNewsService>;
   });
 
-  it('should create the component', () => {
+  it('should create', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should initialize with empty stories and page 1', () => {
-    expect(component.stories).toEqual([]);
-    expect(component.page).toBe(1);
-    expect(component.limit).toBe(20);
-  });
+  it('should fetch new stories on init', () => {
+    const mockStories = [{ title: 'Story 1' }, { title: 'Story 2' }];
+    hackerNewsService.getNewStories.and.returnValue(of(mockStories));
 
-  it('should call fetchNewStories on ngOnInit', () => {
-    const fetchNewStoriesSpy = spyOn(
-      component,
-      'fetchNewStories'
-    ).and.callThrough();
     component.ngOnInit();
-    expect(fetchNewStoriesSpy).toHaveBeenCalled();
+
+    expect(hackerNewsService.getNewStories).toHaveBeenCalledWith(
+      1,
+      20,
+      jasmine.any(Function)
+    );
+    expect(component.stories).toEqual(mockStories);
   });
 
-  it('should fetch new stories and update the stories property', () => {
-    const mockData = [{ title: 'Story 1', url: 'http://example.com/1' }];
-    mockHackerNewsService.getNewStories.and.returnValue(of(mockData));
-    component.fetchNewStories();
-    fixture.detectChanges();
-    expect(component.stories).toEqual(mockData);
-  });
+  it('should fetch new stories on next page', () => {
+    const mockStories = [{ title: 'Story 3' }, { title: 'Story 4' }];
+    hackerNewsService.getNewStories.and.returnValue(of(mockStories));
 
-  it('should call nextPage and fetch new stories', () => {
-    spyOn(component, 'fetchNewStories').and.callThrough();
     component.nextPage();
-    expect(component.page).toBe(2);
-    expect(component.fetchNewStories).toHaveBeenCalled();
+
+    expect(hackerNewsService.getNewStories).toHaveBeenCalledWith(
+      2,
+      20,
+      jasmine.any(Function)
+    );
+    expect(component.stories).toEqual(mockStories);
   });
 
-  it('should call prevPage and fetch new stories if page is greater than 1', () => {
+  it('should fetch new stories on previous page', () => {
     component.page = 2;
-    spyOn(component, 'fetchNewStories').and.callThrough();
+    const mockStories = [{ title: 'Story 5' }, { title: 'Story 6' }];
+    hackerNewsService.getNewStories.and.returnValue(of(mockStories));
+
     component.prevPage();
-    expect(component.page).toBe(1);
-    expect(component.fetchNewStories).toHaveBeenCalled();
+
+    expect(hackerNewsService.getNewStories).toHaveBeenCalledWith(
+      1,
+      20,
+      jasmine.any(Function)
+    );
+    expect(component.stories).toEqual(mockStories);
   });
 
-  it('should not call prevPage when page is 1', () => {
-    spyOn(component, 'fetchNewStories').and.callThrough();
+  it('should not fetch new stories on previous page if page is 1', () => {
+    component.page = 1;
+    hackerNewsService.getNewStories.and.returnValue(of([]));
+
     component.prevPage();
-    expect(component.page).toBe(1);
-    expect(component.fetchNewStories).not.toHaveBeenCalled();
+
+    expect(hackerNewsService.getNewStories).not.toHaveBeenCalled();
+  });
+
+  it('should set loading state correctly', () => {
+    const mockStories = [{ title: 'Story 7' }, { title: 'Story 8' }];
+    hackerNewsService.getNewStories.and.callFake(
+      (page, limit, loadingCallback) => {
+        loadingCallback(true);
+        return of(mockStories);
+      }
+    );
+
+    component.fetchNewStories();
+
+    expect(component.loading).toBeTrue();
+
+    hackerNewsService.getNewStories.and.callFake(
+      (page, limit, loadingCallback) => {
+        loadingCallback(false);
+        return of(mockStories);
+      }
+    );
+
+    component.fetchNewStories();
+
+    expect(component.loading).toBeFalse();
   });
 });

@@ -11,38 +11,58 @@ export class HackerNewsService {
 
   constructor(private http: HttpClient) {}
 
+  /**
+   * Fetches new stories from the server with pagination
+   * @param page Page number for pagination
+   * @param limit Number of items per page
+   * @param loadingCallback Callback to handle loading state
+   * @returns Observable of new stories array
+   */
   getNewStories(
     page: number,
     limit: number,
     loadingCallback: (loading: boolean) => void
   ): Observable<any[]> {
-    loadingCallback(true); // Set loading to true
+    loadingCallback(true); // Set loading to true before the request starts
     return this.http
       .get<any[]>(`${this.apiUrl}/new-stories?page=${page}&limit=${limit}`)
       .pipe(
-        catchError(this.handleError),
-        finalize(() => loadingCallback(false)) // Set loading to false after request completes
+        catchError((error) => this.handleError(error)),
+        finalize(() => loadingCallback(false)) // Ensure loading is set to false after the request completes, regardless of success or error
       );
   }
 
+  /**
+   * Searches stories based on a query with pagination
+   * @param query Search query
+   * @param page Page number for pagination
+   * @param limit Number of items per page
+   * @param loadingCallback Callback to handle loading state
+   * @returns Observable of search result stories array
+   */
   searchStories(
     query: string,
     page: number,
     limit: number,
     loadingCallback: (loading: boolean) => void
   ): Observable<any[]> {
-    loadingCallback(true); // Set loading to true
+    loadingCallback(true); // Set loading to true before the request starts
     return this.http
       .get<any[]>(
         `${this.apiUrl}/search-stories?query=${query}&page=${page}&limit=${limit}`
       )
       .pipe(
-        catchError(this.handleError),
-        finalize(() => loadingCallback(false)) // Set loading to false after request completes
+        catchError((error) => this.handleError(error)),
+        finalize(() => loadingCallback(false)) // Ensure loading is set to false after the request completes, regardless of success or error
       );
   }
 
-  private handleError(error: HttpErrorResponse) {
+  /**
+   * Error handling for HTTP requests
+   * @param error The HTTP error response
+   * @returns Observable throwing an error message
+   */
+  private handleError(error: HttpErrorResponse): Observable<never> {
     console.error('An error occurred:', error.message);
     return throwError(
       () => new Error('Something went wrong; please try again later.')

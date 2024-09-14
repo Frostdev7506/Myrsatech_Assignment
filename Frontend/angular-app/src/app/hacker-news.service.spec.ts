@@ -7,8 +7,7 @@ import { HackerNewsService } from './hacker-news.service';
 
 describe('HackerNewsService', () => {
   let service: HackerNewsService;
-  let httpMock: HttpTestingController;
-  const apiUrl = 'http://localhost:5000';
+  let httpTestingController: HttpTestingController;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -17,82 +16,95 @@ describe('HackerNewsService', () => {
     });
 
     service = TestBed.inject(HackerNewsService);
-    httpMock = TestBed.inject(HttpTestingController);
+    httpTestingController = TestBed.inject(HttpTestingController);
   });
 
   afterEach(() => {
-    httpMock.verify();
+    httpTestingController.verify();
   });
 
   it('should be created', () => {
     expect(service).toBeTruthy();
   });
 
-  describe('#getNewStories', () => {
-    it('should call the correct URL and return expected data', () => {
-      const mockData = [{ title: 'New Story 1', url: 'http://example.com/1' }];
-      const page = 1;
-      const limit = 20;
-      const url = `${apiUrl}/new-stories?page=${page}&limit=${limit}`;
+  it('should get new stories', (done) => {
+    const mockStories = [{ title: 'Story 1' }, { title: 'Story 2' }];
+    const loadingCallback = jasmine.createSpy('loadingCallback');
 
-      service.getNewStories(page, limit).subscribe((data) => {
-        expect(data).toEqual(mockData);
-      });
+    service.getNewStories(1, 20, loadingCallback).subscribe((stories) => {
+      expect(stories).toEqual(mockStories);
 
-      const req = httpMock.expectOne(url);
-      expect(req.request.method).toBe('GET');
-      req.flush(mockData);
+      done();
     });
 
-    it('should handle errors', () => {
-      const page = 1;
-      const limit = 20;
-      const url = `${apiUrl}/new-stories?page=${page}&limit=${limit}`;
-      const errorMsg = 'Error fetching new stories';
+    const req = httpTestingController.expectOne((req) =>
+      req.url.includes('/new-stories?page=1&limit=20')
+    );
+    expect(req.request.method).toEqual('GET');
 
-      service.getNewStories(page, limit).subscribe(
-        () => fail('expected an error, not stories'),
-        (error) => expect(error.message).toContain(errorMsg)
-      );
-
-      const req = httpMock.expectOne(url);
-      req.flush(errorMsg, { status: 500, statusText: 'Server Error' });
-    });
+    req.flush(mockStories); // Simulate a successful response
   });
 
-  describe('#searchStories', () => {
-    it('should call the correct URL and return expected data', () => {
-      const mockData = [
-        { title: 'Search Story 1', url: 'http://example.com/1' },
-      ];
-      const query = 'test';
-      const page = 1;
-      const limit = 20;
-      const url = `${apiUrl}/search-stories?query=${query}&page=${page}&limit=${limit}`;
+  it('should handle error when getting new stories ', (done) => {
+    const loadingCallback = jasmine.createSpy('loadingCallback');
 
-      service.searchStories(query, page, limit).subscribe((data) => {
-        expect(data).toEqual(mockData);
+    service.getNewStories(1, 20, loadingCallback).subscribe(
+      () => {},
+      (error) => {
+        expect(error.message).toEqual(
+          'Something went wrong; please try again later.'
+        );
+
+        done();
+      }
+    );
+
+    const req = httpTestingController.expectOne((req) =>
+      req.url.includes('/new-stories?page=1&limit=20')
+    );
+    expect(req.request.method).toEqual('GET');
+
+    req.flush('Error', { status: 404, statusText: 'Not Found' }); // Simulate error response
+  });
+
+  it('should search stories', (done) => {
+    const mockStories = [{ title: 'Story 3' }, { title: 'Story 4' }];
+    const loadingCallback = jasmine.createSpy('loadingCallback');
+
+    service
+      .searchStories('test', 1, 20, loadingCallback)
+      .subscribe((stories) => {
+        expect(stories).toEqual(mockStories);
+
+        done();
       });
 
-      const req = httpMock.expectOne(url);
-      expect(req.request.method).toBe('GET');
-      req.flush(mockData);
-    });
+    const req = httpTestingController.expectOne((req) =>
+      req.url.includes('/search-stories?query=test&page=1&limit=20')
+    );
+    expect(req.request.method).toEqual('GET');
 
-    it('should handle errors', () => {
-      const query = 'test';
-      const page = 1;
-      const limit = 20;
-      const url = `${apiUrl}/search-stories?query=${query}&page=${page}&limit=${limit}`;
-      const errorMsg = 'Error searching stories';
+    req.flush(mockStories); // Simulate a successful response
+  });
 
-      service.searchStories(query, page, limit).subscribe(
-        () => fail('expected an error, not stories'),
-        (error) => expect(error.message).toContain(errorMsg)
-      );
+  it('should handle error when searching stories ', (done) => {
+    const loadingCallback = jasmine.createSpy('loadingCallback');
 
-      const req = httpMock.expectOne(url);
-      req.flush(errorMsg, { status: 500, statusText: 'Server Error' });
-    });
+    service.searchStories('test', 1, 20, loadingCallback).subscribe(
+      () => {},
+      (error) => {
+        expect(error.message).toEqual(
+          'Something went wrong; please try again later.'
+        );
+        done();
+      }
+    );
+
+    const req = httpTestingController.expectOne((req) =>
+      req.url.includes('/search-stories?query=test&page=1&limit=20')
+    );
+    expect(req.request.method).toEqual('GET');
+
+    req.flush('Error', { status: 404, statusText: 'Not Found' }); // Simulate error response
   });
 });

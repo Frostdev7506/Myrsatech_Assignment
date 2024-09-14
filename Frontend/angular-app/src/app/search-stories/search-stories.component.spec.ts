@@ -1,81 +1,120 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { of } from 'rxjs';
 import { SearchStoriesComponent } from './search-stories.component';
 import { HackerNewsService } from '../hacker-news.service';
-import { of } from 'rxjs';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 
 describe('SearchStoriesComponent', () => {
   let component: SearchStoriesComponent;
   let fixture: ComponentFixture<SearchStoriesComponent>;
-  let mockHackerNewsService: jasmine.SpyObj<HackerNewsService>;
+  let hackerNewsService: jasmine.SpyObj<HackerNewsService>;
 
   beforeEach(async () => {
-    mockHackerNewsService = jasmine.createSpyObj('HackerNewsService', [
+    const hackerNewsServiceSpy = jasmine.createSpyObj('HackerNewsService', [
       'searchStories',
     ]);
 
     await TestBed.configureTestingModule({
-      imports: [CommonModule, FormsModule],
-      declarations: [SearchStoriesComponent],
+      imports: [HttpClientTestingModule],
       providers: [
-        { provide: HackerNewsService, useValue: mockHackerNewsService },
+        SearchStoriesComponent,
+        { provide: HackerNewsService, useValue: hackerNewsServiceSpy },
       ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(SearchStoriesComponent);
     component = fixture.componentInstance;
-    fixture.detectChanges();
+    hackerNewsService = TestBed.inject(
+      HackerNewsService
+    ) as jasmine.SpyObj<HackerNewsService>;
   });
 
-  it('should create the component', () => {
+  it('should create', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should initialize with empty stories, query, page 1, and limit 20', () => {
-    expect(component.stories).toEqual([]);
-    expect(component.query).toBe('');
-    expect(component.page).toBe(1);
-    expect(component.limit).toBe(20);
-  });
+  it('should search stories on search', () => {
+    const mockStories = [{ title: 'Story 1' }, { title: 'Story 2' }];
+    hackerNewsService.searchStories.and.returnValue(of(mockStories));
 
-  it('should call searchStories when input changes', () => {
-    const searchStoriesSpy = spyOn(
-      component,
-      'searchStories'
-    ).and.callThrough();
     component.query = 'test';
     component.searchStories();
-    expect(searchStoriesSpy).toHaveBeenCalled();
+
+    expect(hackerNewsService.searchStories).toHaveBeenCalledWith(
+      'test',
+      1,
+      20,
+      jasmine.any(Function)
+    );
+    expect(component.stories).toEqual(mockStories);
   });
 
-  it('should fetch search results and update the stories property', () => {
-    const mockData = [{ title: 'Story 1', url: 'http://example.com/1' }];
-    mockHackerNewsService.searchStories.and.returnValue(of(mockData));
-    component.searchStories();
-    fixture.detectChanges();
-    expect(component.stories).toEqual(mockData);
-  });
+  it('should search stories on next page', () => {
+    const mockStories = [{ title: 'Story 3' }, { title: 'Story 4' }];
+    hackerNewsService.searchStories.and.returnValue(of(mockStories));
 
-  it('should call nextPage and fetch search results', () => {
-    spyOn(component, 'searchStories').and.callThrough();
+    component.query = 'test';
     component.nextPage();
-    expect(component.page).toBe(2);
-    expect(component.searchStories).toHaveBeenCalled();
+
+    expect(hackerNewsService.searchStories).toHaveBeenCalledWith(
+      'test',
+      2,
+      20,
+      jasmine.any(Function)
+    );
+    expect(component.stories).toEqual(mockStories);
   });
 
-  it('should call prevPage and fetch search results if page is greater than 1', () => {
+  it('should search stories on previous page', () => {
     component.page = 2;
-    spyOn(component, 'searchStories').and.callThrough();
+    const mockStories = [{ title: 'Story 5' }, { title: 'Story 6' }];
+    hackerNewsService.searchStories.and.returnValue(of(mockStories));
+
+    component.query = 'test';
     component.prevPage();
-    expect(component.page).toBe(1);
-    expect(component.searchStories).toHaveBeenCalled();
+
+    expect(hackerNewsService.searchStories).toHaveBeenCalledWith(
+      'test',
+      1,
+      20,
+      jasmine.any(Function)
+    );
+    expect(component.stories).toEqual(mockStories);
   });
 
-  it('should not call prevPage when page is 1', () => {
-    spyOn(component, 'searchStories').and.callThrough();
+  it('should not search stories on previous page if page is 1', () => {
+    component.page = 1;
+    hackerNewsService.searchStories.and.returnValue(of([]));
+
+    component.query = 'test';
     component.prevPage();
-    expect(component.page).toBe(1);
-    expect(component.searchStories).not.toHaveBeenCalled();
+
+    expect(hackerNewsService.searchStories).not.toHaveBeenCalled();
+  });
+
+  it('should set loading state correctly', () => {
+    const mockStories = [{ title: 'Story 7' }, { title: 'Story 8' }];
+    hackerNewsService.searchStories.and.callFake(
+      (query, page, limit, loadingCallback) => {
+        loadingCallback(true);
+        return of(mockStories);
+      }
+    );
+
+    component.query = 'test';
+    component.searchStories();
+
+    expect(component.loading).toBeTrue();
+
+    hackerNewsService.searchStories.and.callFake(
+      (query, page, limit, loadingCallback) => {
+        loadingCallback(false);
+        return of(mockStories);
+      }
+    );
+
+    component.searchStories();
+
+    expect(component.loading).toBeFalse();
   });
 });
