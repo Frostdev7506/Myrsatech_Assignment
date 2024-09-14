@@ -1,4 +1,3 @@
-// src/app/new-stories/new-stories.component.ts
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common'; // Import CommonModule
 import { HackerNewsService } from '../hacker-news.service';
@@ -6,7 +5,7 @@ import { HackerNewsService } from '../hacker-news.service';
 @Component({
   selector: 'app-new-stories',
   standalone: true,
-  imports: [CommonModule], // Include CommonModule here
+  imports: [CommonModule],
   templateUrl: './new-stories.component.html',
   styleUrls: ['./new-stories.component.css'],
 })
@@ -14,6 +13,7 @@ export class NewStoriesComponent implements OnInit {
   stories: any[] = [];
   page: number = 1;
   limit: number = 20;
+  loading: boolean = false;
 
   constructor(private hackerNewsService: HackerNewsService) {}
 
@@ -23,7 +23,11 @@ export class NewStoriesComponent implements OnInit {
 
   fetchNewStories(): void {
     this.hackerNewsService
-      .getNewStories(this.page, this.limit)
+      .getNewStories(
+        this.page,
+        this.limit,
+        (loading) => (this.loading = loading)
+      )
       .subscribe((data) => {
         this.stories = data;
       });

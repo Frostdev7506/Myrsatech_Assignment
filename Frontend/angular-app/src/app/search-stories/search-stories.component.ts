@@ -1,4 +1,3 @@
-// src/app/search-stories/search-stories.component.ts
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common'; // Import CommonModule
 import { FormsModule } from '@angular/forms'; // Import FormsModule
@@ -16,12 +15,18 @@ export class SearchStoriesComponent {
   query: string = '';
   page: number = 1;
   limit: number = 20;
+  loading: boolean = false;
 
   constructor(private hackerNewsService: HackerNewsService) {}
 
   searchStories(): void {
     this.hackerNewsService
-      .searchStories(this.query, this.page, this.limit)
+      .searchStories(
+        this.query,
+        this.page,
+        this.limit,
+        (loading) => (this.loading = loading)
+      )
       .subscribe((data) => {
         this.stories = data;
       });

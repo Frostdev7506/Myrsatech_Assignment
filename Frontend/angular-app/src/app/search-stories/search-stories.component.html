@@ -3,9 +3,12 @@
     <h2>Search Stories</h2>
     <input type="text" [(ngModel)]="query" (input)="searchStories()" placeholder="Search stories...">
 
-    <ul>
+    <div *ngIf="loading" class="spinner-container">
+        <div class="spinner"></div>
+    </div>
+    <ul *ngIf="!loading">
         <li *ngFor="let story of stories">
-            <a [href]="story.url" target="_blank">{{ story.title }}</a>
+            <a [href]="story.url || '#'" target="_blank">{{ story.title }}</a>
         </li>
     </ul>
     <button (click)="prevPage()">Previous</button>

@@ -1,8 +1,7 @@
-// src/app/hacker-news.service.ts
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { catchError, finalize } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root',
@@ -12,18 +11,35 @@ export class HackerNewsService {
 
   constructor(private http: HttpClient) {}
 
-  getNewStories(page: number, limit: number): Observable<any[]> {
+  getNewStories(
+    page: number,
+    limit: number,
+    loadingCallback: (loading: boolean) => void
+  ): Observable<any[]> {
+    loadingCallback(true); // Set loading to true
     return this.http
       .get<any[]>(`${this.apiUrl}/new-stories?page=${page}&limit=${limit}`)
-      .pipe(catchError(this.handleError));
+      .pipe(
+        catchError(this.handleError),
+        finalize(() => loadingCallback(false)) // Set loading to false after request completes
+      );
   }
 
-  searchStories(query: string, page: number, limit: number): Observable<any[]> {
+  searchStories(
+    query: string,
+    page: number,
+    limit: number,
+    loadingCallback: (loading: boolean) => void
+  ): Observable<any[]> {
+    loadingCallback(true); // Set loading to true
     return this.http
       .get<any[]>(
         `${this.apiUrl}/search-stories?query=${query}&page=${page}&limit=${limit}`
       )
-      .pipe(catchError(this.handleError));
+      .pipe(
+        catchError(this.handleError),
+        finalize(() => loadingCallback(false)) // Set loading to false after request completes
+      );
   }
 
   private handleError(error: HttpErrorResponse) {
