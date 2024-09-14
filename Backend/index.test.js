@@ -1,78 +1,130 @@
-const request = require("supertest");
-const express = require("express");
 const axios = require("axios");
 const NodeCache = require("node-cache");
+const {
+  HackerNewsService,
+  HackerNewsController,
+  startServer,
+  stopServer,
+} = require("./index");
 
 jest.mock("axios");
 
-const app = express();
-const cache = new NodeCache({ stdTTL: 600 });
+describe("HackerNewsService", () => {
+  let hackerNewsService;
+  let cache;
 
-class HackerNewsService {
-  async getNewStories(page = 1, limit = 20) {
-    const cachedStories = cache.get("newStories");
-    if (cachedStories) {
-      return this.paginate(cachedStories, page, limit);
-    }
-
-    const response = await axios.get(
-      "https://hacker-news.firebaseio.com/v0/newstories.json"
-    );
-    const stories = response.data;
-    cache.set("newStories", stories);
-    return this.paginate(stories, page, limit);
-  }
-
-  paginate(array, page, limit) {
-    const startIndex = (page - 1) * limit;
-    const endIndex = page * limit;
-    return array.slice(startIndex, endIndex);
-  }
-}
-
-class HackerNewsController {
-  constructor(hackerNewsService) {
-    this.hackerNewsService = hackerNewsService;
-  }
-
-  async getNewStories(req, res) {
-    const { page = 1, limit = 20 } = req.query;
-    const stories = await this.hackerNewsService.getNewStories(
-      parseInt(page),
-      parseInt(limit)
-    );
-    res.json(stories);
-  }
-}
-
-const hackerNewsService = new HackerNewsService();
-const hackerNewsController = new HackerNewsController(hackerNewsService);
-
-app.use((req, res, next) => {
-  req.hackerNewsController = hackerNewsController;
-  next();
-});
-
-app.get("/new-stories", (req, res) =>
-  req.hackerNewsController.getNewStories(req, res)
-);
-
-describe("Hacker News API", () => {
-  it("should fetch new stories", async () => {
-    const stories = [1, 2, 3, 4, 5];
-    axios.get.mockResolvedValue({ data: stories });
-
-    const response = await request(app).get("/new-stories");
-    expect(response.status).toBe(200);
-    expect(response.body).toEqual(stories.slice(0, 20));
+  beforeAll(async () => {
+    await startServer();
   });
 
-  it("should paginate stories", async () => {
-    const stories = Array.from({ length: 50 }, (_, i) => i + 1);
-    axios.get.mockResolvedValue({ data: stories });
+  afterAll(async () => {
+    await stopServer();
+  });
 
-    const response = await request(app).get("/new-stories?page=2&limit=10");
-    expect(response.status).toBe(200);
-    expect(response.body).toEqual(stories.slice(10, 20));
+  beforeEach(() => {
+    cache = new NodeCache({ stdTTL: 600 });
+    hackerNewsService = new HackerNewsService(cache);
+  });
+
+  afterEach(() => {
+    cache.flushAll();
+  });
+
+  it("should fetch new stories and cache them", async () => {
+    const storyIds = [1, 2, 3];
+    const stories = [
+      { id: 1, title: "Story 1" },
+      { id: 2, title: "Story 2" },
+      { id: 3, title: "Story 3" },
+    ];
+
+    axios.get.mockResolvedValueOnce({ data: storyIds });
+    axios.get.mockImplementation((url) => {
+      const id = url.split("/").pop().replace(".json", "");
+      return Promise.resolve({ data: stories.find((s) => s.id == id) });
+    });
+
+    const result = await hackerNewsService.getNewStories();
+    expect(result).toEqual(stories);
+    expect(cache.get("newStories")).toEqual(stories);
+  });
+
+  it("should return cached stories if available", async () => {
+    const cachedStories = [
+      { id: 1, title: "Cached Story 1" },
+      { id: 2, title: "Cached Story 2" },
+    ];
+    cache.set("newStories", cachedStories);
+
+    const result = await hackerNewsService.getNewStories();
+    expect(result).toEqual(cachedStories);
+  });
+
+  it("should search stories by title", async () => {
+    const cachedStories = [
+      { id: 1, title: "Cached Story 1" },
+      { id: 2, title: "Cached Story 2" },
+      { id: 3, title: "Another Story" },
+    ];
+    cache.set("newStories", cachedStories);
+
+    const result = await hackerNewsService.searchStories("Cached");
+    expect(result).toEqual([
+      { id: 1, title: "Cached Story 1" },
+      { id: 2, title: "Cached Story 2" },
+    ]);
+  });
+});
+
+describe("HackerNewsController", () => {
+  let hackerNewsService;
+  let hackerNewsController;
+  let req;
+  let res;
+
+  beforeAll(async () => {
+    await startServer();
+  });
+
+  afterAll(async () => {
+    await stopServer();
+  });
+
+  beforeEach(() => {
+    hackerNewsService = new HackerNewsService();
+    hackerNewsController = new HackerNewsController(hackerNewsService);
+    req = { query: {} };
+    res = {
+      json: jest.fn(),
+      status: jest.fn(() => res),
+    };
+  });
+
+  it("should get new stories", async () => {
+    req.query = { page: 1, limit: 10 };
+    hackerNewsService.getNewStories = jest.fn(() => Promise.resolve([]));
+
+    await hackerNewsController.getNewStories(req, res);
+    expect(hackerNewsService.getNewStories).toHaveBeenCalledWith(1, 10);
+    expect(res.json).toHaveBeenCalledWith([]);
+  });
+
+  it("should search stories", async () => {
+    req.query = { query: "test", page: 1, limit: 10 };
+    hackerNewsService.searchStories = jest.fn(() => Promise.resolve([]));
+
+    await hackerNewsController.searchStories(req, res);
+    expect(hackerNewsService.searchStories).toHaveBeenCalledWith("test", 1, 10);
+    expect(res.json).toHaveBeenCalledWith([]);
+  });
+
+  it("should return error if query is missing", async () => {
+    req.query = { page: 1, limit: 10 };
+
+    await hackerNewsController.searchStories(req, res);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({
+      error: "Query parameter is required",
+    });
   });
 });

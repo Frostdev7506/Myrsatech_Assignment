@@ -1,18 +1,22 @@
+require("dotenv").config(); // Load environment variables from .env file
+
 const express = require("express");
 const axios = require("axios");
 const NodeCache = require("node-cache");
 const cors = require("cors");
 const app = express();
 app.use(cors());
-const port = 5000;
+const port = process.env.PORT || 5000; // Use environment variable for port
 
-// Cache setup
-const cache = new NodeCache({ stdTTL: 600 }); // Cache for 10 minutes
+const cache = new NodeCache({ stdTTL: 600 });
 
-// Service to fetch stories
 class HackerNewsService {
+  constructor(cache) {
+    this.cache = cache;
+  }
+
   async getNewStories(page = 1, limit = 20) {
-    const cachedStories = cache.get("newStories");
+    const cachedStories = this.cache.get("newStories");
     if (cachedStories) {
       return this.paginate(cachedStories, page, limit);
     }
@@ -29,16 +33,16 @@ class HackerNewsService {
         return storyResponse.data;
       })
     );
-    cache.set("newStories", stories);
+    this.cache.set("newStories", stories);
     return this.paginate(stories, page, limit);
   }
 
   async searchStories(query, page = 1, limit = 20) {
-    const cachedStories = cache.get("newStories");
+    const cachedStories = this.cache.get("newStories");
     if (!cachedStories) {
       await this.getNewStories();
     }
-    const stories = cache.get("newStories");
+    const stories = this.cache.get("newStories");
     const filteredStories = stories.filter((story) =>
       story.title.toLowerCase().includes(query.toLowerCase())
     );
@@ -52,7 +56,6 @@ class HackerNewsService {
   }
 }
 
-// Controller to handle requests
 class HackerNewsController {
   constructor(hackerNewsService) {
     this.hackerNewsService = hackerNewsService;
@@ -81,8 +84,7 @@ class HackerNewsController {
   }
 }
 
-// Middleware for dependency injection
-const hackerNewsService = new HackerNewsService();
+const hackerNewsService = new HackerNewsService(cache);
 const hackerNewsController = new HackerNewsController(hackerNewsService);
 
 app.use((req, res, next) => {
@@ -90,7 +92,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Routes
 app.get("/new-stories", (req, res) =>
   req.hackerNewsController.getNewStories(req, res)
 );
@@ -99,7 +100,34 @@ app.get("/search-stories", (req, res) =>
   req.hackerNewsController.searchStories(req, res)
 );
 
-// Start the server
-app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
-});
+let server;
+
+function startServer() {
+  return new Promise((resolve) => {
+    server = app.listen(port, () => {
+      console.log(`Server is running on http://localhost:${port}`);
+      resolve();
+    });
+  });
+}
+
+function stopServer() {
+  return new Promise((resolve) => {
+    server.close(() => {
+      console.log("Server stopped");
+      resolve();
+    });
+  });
+}
+
+// Start the server directly in production
+if (process.env.NODE_ENV !== "test") {
+  startServer();
+}
+
+module.exports = {
+  HackerNewsService,
+  HackerNewsController,
+  startServer,
+  stopServer,
+};
