@@ -11,7 +11,7 @@ const NewStories: React.FC = () => {
   const [stories, setStories] = useState<Story[]>([]);
   const [page, setPage] = useState(1);
   const [limit] = useState(20);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchNewStories = async () => {
@@ -37,7 +37,7 @@ const NewStories: React.FC = () => {
     <div className="new-stories-container">
       <h2 className="new-stories-title">New Stories</h2>
       {loading ? (
-        <div className="spinner-container">
+        <div className="spinner-container" data-testid="spinner-container">
           <div className="spinner"></div>
         </div>
       ) : (
@@ -56,11 +56,16 @@ const NewStories: React.FC = () => {
         <button
           onClick={prevPage}
           disabled={page === 1}
+          data-testid="Previous Page"
           className="new-stories-button"
         >
           Previous Page
         </button>
-        <button onClick={nextPage} className="new-stories-button">
+        <button
+          onClick={nextPage}
+          data-testid="Next Page"
+          className="new-stories-button"
+        >
           Next Page
         </button>
       </div>

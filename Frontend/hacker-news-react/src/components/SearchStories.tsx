@@ -44,7 +44,7 @@ const SearchStories: React.FC = () => {
         Search
       </button>
       {loading ? (
-        <div className="spinner-container">
+        <div className="spinner-container" data-testid="spinner-container">
           <div className="spinner"></div>
         </div>
       ) : (

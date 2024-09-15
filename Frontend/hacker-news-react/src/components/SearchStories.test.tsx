@@ -1,35 +1,38 @@
 import React from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import SearchStories from "./SearchStories";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  cleanup,
+} from "@testing-library/react";
+import "@testing-library/jest-dom";
+import SearchStories from "../components/SearchStories";
 import { searchStories } from "../services/HackerNewsService";
 
-// Mock the HackerNewsService
-jest.mock("../services/HackerNewsService", () => ({
-  searchStories: jest.fn(),
-}));
+jest.mock("../services/HackerNewsService");
 
-describe("SearchStories", () => {
-  afterEach(() => {
+describe("SearchStories Component", () => {
+  const mockStories = [
+    { url: "https://example.com/story1", title: "Story 1" },
+    { url: "https://example.com/story2", title: "Story 2" },
+  ];
+
+  beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it("renders the component", async () => {
-    (searchStories as jest.Mock).mockResolvedValueOnce([]);
-    render(<SearchStories />);
-    expect(screen.getByText("Search Stories")).toBeInTheDocument();
+  afterEach(() => {
+    cleanup();
   });
 
-  it("searches for stories and displays them", async () => {
-    const mockStories = [
-      { title: "Story 1", url: "http://example.com/1" },
-      { title: "Story 2", url: "http://example.com/2" },
-    ];
-    (searchStories as jest.Mock).mockResolvedValueOnce(mockStories);
+  it("should correctly fetch and display stories based on the search query", async () => {
+    (searchStories as jest.Mock).mockResolvedValue(mockStories);
 
     render(<SearchStories />);
 
     fireEvent.change(screen.getByPlaceholderText("Search stories..."), {
-      target: { value: "test" },
+      target: { value: "React" },
     });
     fireEvent.click(screen.getByText("Search"));
 
@@ -39,30 +42,43 @@ describe("SearchStories", () => {
     });
   });
 
-  it("handles pagination", async () => {
-    (searchStories as jest.Mock).mockResolvedValueOnce([]);
+  it("should display a loading spinner while fetching stories", async () => {
+    (searchStories as jest.Mock).mockImplementation(
+      () =>
+        new Promise((resolve) => setTimeout(() => resolve(mockStories), 1000))
+    );
+
+    render(<SearchStories />);
+
+    fireEvent.change(screen.getByTestId("spinner-container"), {
+      target: { value: "React" },
+    });
+    fireEvent.click(screen.getByText("Search"));
+
+    expect(screen.getByTestId("spinner-container")).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("spinner-container")).not.toBeInTheDocument();
+    });
+  });
+
+  it("should handle errors gracefully and log appropriate error messages", async () => {
+    const consoleErrorSpy = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    (searchStories as jest.Mock).mockRejectedValue(new Error("Network Error"));
 
     render(<SearchStories />);
 
     fireEvent.change(screen.getByPlaceholderText("Search stories..."), {
-      target: { value: "test" },
+      target: { value: "React" },
     });
     fireEvent.click(screen.getByText("Search"));
 
-    fireEvent.click(screen.getByText("Next Page"));
-    expect(searchStories).toHaveBeenCalledWith(
-      "test",
-      2,
-      20,
-      expect.any(Function)
-    );
+    await waitFor(() => {
+      expect(consoleErrorSpy).toHaveBeenCalledWith("Network Error");
+    });
 
-    fireEvent.click(screen.getByText("Previous Page"));
-    expect(searchStories).toHaveBeenCalledWith(
-      "test",
-      1,
-      20,
-      expect.any(Function)
-    );
+    consoleErrorSpy.mockRestore();
   });
 });

@@ -11,9 +11,9 @@
 /Frontend/angular-app/coverage
 
 # React frontend
-/Frontend/react-app/node_modules
-/Frontend/react-app/build
-/Frontend/react-app/coverage
+/Frontend/hacker-news-react/node_modules
+/Frontend/hacker-news-react/build
+/Frontend/hacker-news-react/coverage
 
 
 node_modules

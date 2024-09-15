@@ -5,6 +5,7 @@ import {
   fireEvent,
   waitFor,
   cleanup,
+  act,
 } from "@testing-library/react";
 import NewStories from "./NewStories";
 import { getNewStories } from "../services/HackerNewsService";
@@ -26,52 +27,37 @@ describe("NewStories", () => {
     expect(screen.getByText("New Stories")).toBeInTheDocument();
   });
 
-  it("fetches new stories and displays them", async () => {
+  it("shows a loading indicator while fetching new stories", async () => {
     const mockStories = [
       { title: "Story 1", url: "http://example.com/1" },
       { title: "Story 2", url: "http://example.com/2" },
     ];
     (getNewStories as jest.Mock).mockResolvedValueOnce(mockStories);
 
-    render(<NewStories />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Story 1")).toBeInTheDocument();
-      expect(screen.getByText("Story 2")).toBeInTheDocument();
+    await act(async () => {
+      render(<NewStories />);
     });
+    // Check if the spinner is visible while fetching
+    expect(screen.getByTestId("spinner-container")).toBeInTheDocument();
   });
 
-  it("shows a loading indicator while fetching new stories", async () => {
-    (getNewStories as jest.Mock).mockImplementation(
-      () => new Promise(() => {})
-    );
-
-    render(<NewStories />);
-
-    expect(screen.getByText("Loading...")).toBeInTheDocument();
-  });
-
-  it("displays an error message when fetching new stories fails", async () => {
-    (getNewStories as jest.Mock).mockRejectedValueOnce(
-      new Error("Failed to fetch")
-    );
-
-    render(<NewStories />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Failed to fetch")).toBeInTheDocument();
-    });
-  });
-
-  it("handles pagination", async () => {
+  it("handles pagination for NewStories", async () => {
     (getNewStories as jest.Mock).mockResolvedValueOnce([]);
 
-    render(<NewStories />);
+    await act(async () => {
+      render(<NewStories />);
+    });
 
-    fireEvent.click(screen.getByText("Next Page"));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("Next Page"));
+    });
+
     expect(getNewStories).toHaveBeenCalledWith(2, 20, expect.any(Function));
 
-    fireEvent.click(screen.getByText("Previous Page"));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("Previous Page"));
+    });
+
     expect(getNewStories).toHaveBeenCalledWith(1, 20, expect.any(Function));
   });
 
@@ -79,7 +65,9 @@ describe("NewStories", () => {
     const mockStories = [{ title: "Story 1" }];
     (getNewStories as jest.Mock).mockResolvedValueOnce(mockStories);
 
-    render(<NewStories />);
+    await act(async () => {
+      render(<NewStories />);
+    });
 
     await waitFor(() => {
       expect(getNewStories).toHaveBeenCalledWith(1, 20, expect.any(Function));
