@@ -14,9 +14,15 @@ export const getNewStories = async (
     );
     setLoading(false);
     return response.data;
-  } catch (error) {
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error(error.message);
+      throw new Error("Something went wrong; please try again later.");
+    } else {
+      throw new Error("Something went wrong; please try again later.");
+    }
+  } finally {
     setLoading(false);
-    throw new Error("Something went wrong; please try again later.");
   }
 };
 
@@ -33,8 +39,14 @@ export const searchStories = async (
     );
     setLoading(false);
     return response.data;
-  } catch (error) {
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error(error.message);
+      throw new Error("Something went wrong; please try again later.");
+    } else {
+      throw new Error("Something went wrong; please try again later.");
+    }
+  } finally {
     setLoading(false);
-    throw new Error("Something went wrong; please try again later.");
   }
 };

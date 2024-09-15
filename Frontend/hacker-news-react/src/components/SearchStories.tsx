@@ -18,8 +18,12 @@ const SearchStories: React.FC = () => {
     try {
       const data = await searchStories(query, page, limit, setLoading);
       setStories(data);
-    } catch (error) {
-      console.error(error.message);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error(error.message);
+      } else {
+        console.error("An unexpected error occurred:", error);
+      }
     }
   };
 

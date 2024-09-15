@@ -8,44 +8,51 @@ class HackerNewsService {
   }
 
   async getNewStories(page = 1, limit = 20) {
-    const cachedStories = this.cache.get("newStories");
-    if (cachedStories) {
-      return this.paginate(cachedStories, page, limit);
-    }
-
-    let response;
     try {
-      response = await axios.get(
-        "https://hacker-news.firebaseio.com/v0/newstories.json"
+      const cachedStories = this.cache.get("newStories");
+      if (cachedStories) {
+        return this.paginate(cachedStories, page, limit);
+      }
+
+      let response;
+      try {
+        response = await axios.get(
+          "https://hacker-news.firebaseio.com/v0/newstories.json"
+        );
+      } catch (error) {
+        console.error("The /newstories route of the API Error", error);
+        throw new Error("Failed to fetch new stories");
+      }
+
+      const storyIds = response.data;
+      if (!Array.isArray(storyIds)) {
+        throw new Error("Invalid response format");
+      }
+
+      const stories = await Promise.all(
+        storyIds.map(async (id) => {
+          let storyResponse;
+          try {
+            storyResponse = await axios.get(
+              `https://hacker-news.firebaseio.com/v0/item/${id}.json`
+            );
+          } catch (error) {
+            console.error("The /item route of the API Error", error);
+            return null;
+          }
+          return storyResponse.data;
+        })
       );
+
+      const validStories = stories.filter(
+        (story) => story !== null && story.url
+      );
+
+      this.cache.set("newStories", validStories);
+      return this.paginate(validStories, page, limit);
     } catch (error) {
-      console.error("The /newstories route of the API Error", error);
-      throw new Error("Failed to fetch new stories");
+      console.log("Error in getNewStories Method", error);
     }
-
-    const storyIds = response.data;
-    if (!Array.isArray(storyIds)) {
-      throw new Error("Invalid response format");
-    }
-
-    const stories = await Promise.all(
-      storyIds.map(async (id) => {
-        let storyResponse;
-        try {
-          storyResponse = await axios.get(
-            `https://hacker-news.firebaseio.com/v0/item/${id}.json`
-          );
-        } catch (error) {
-          console.error("The /item route of the API Error", error);
-          return null;
-        }
-        return storyResponse.data;
-      })
-    );
-
-    const validStories = stories.filter((story) => story !== null);
-    this.cache.set("newStories", validStories);
-    return this.paginate(validStories, page, limit);
   }
 
   async searchStories(query, page = 1, limit = 20) {
@@ -54,8 +61,10 @@ class HackerNewsService {
       await this.getNewStories();
     }
     const stories = this.cache.get("newStories");
-    const filteredStories = stories.filter((story) =>
-      story.title.toLowerCase().includes(query.toLowerCase())
+    const filteredStories = stories.filter(
+      (story) =>
+        story.title.toLowerCase().includes(query.toLowerCase()) &&
+        story.url !== ""
     );
     return this.paginate(filteredStories, page, limit);
   }
